@@ -1,0 +1,75 @@
+version: "3.9"
+name: rcvn
+services:
+  nginx:
+    container_name: nginx
+    # build: ./nginx/
+    image: nginx:alpine
+    command: [nginx-debug, '-g', 'daemon off;']
+    links:
+      - php
+    networks:
+      - app_net
+    ports:
+      - "80:80"
+    volumes:
+      - ./scr/working:/var/www/working
+      - ./scr/testing:/var/www/working
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+    environment:
+    - NGINX_HOST=foobar.com
+    - NGINX_PORT=80
+    working_dir: /var/www/
+
+  php:
+    container_name: php
+    # build: ./php
+    image: php
+    volumes:
+      - ./scr/working:/var/www/working
+      - ./scr/testing:/var/www/working
+    working_dir: /var/www/
+    networks:
+      - app_net
+    ports:
+      - "9000:9000"
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+
+
+  database:                      
+    image: "mysql:5.7"
+    container_name: mysql
+    restart: always
+    # mem_limit: 512m
+    # mem_reservation: 128M
+    # cpus: 0.5
+    hostname: mysql01
+    networks:
+      - app_net
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_PASSWORD=docker
+      - MYSQL_USER=docker
+      - MYSQL_DATABASE=docker
+      - MYSQL_DATABASE2=docker2
+    volumes:
+      - ./db/mysql/:/var/lib/mysql  # thư mục lưu DB
+      - ./db/my.cnf:/etc/mysql/my.cnf  # ánh xạ file cấu hình
+      - ./db/dump.sql:/docker-entrypoint-initdb.d/dump.sql
+
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    ports:
+      - 8080:80
+    environment:
+      - PMA_ARBITRARY=1
+    networks:
+      - app_net
+
+networks:
+  app_net:
+    driver: bridge
